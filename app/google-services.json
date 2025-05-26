@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "111457866533",
+    "project_id": "oscarconnectfour",
+    "storage_bucket": "oscarconnectfour.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:111457866533:android:ea14b24159cb554c6680cc",
+        "android_client_info": {
+          "package_name": "com.oscar.connectfour"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuyaaIvrxF9yWd0rNYhSQikEtMxeoyxW8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
