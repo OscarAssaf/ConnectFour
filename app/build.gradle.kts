@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.oscar.tictactoe"
+    namespace = "com.oscar.connectfour"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.oscar.tictactoe"
+        applicationId = "com.oscar.connectfour"
         minSdk = 28
         targetSdk = 34
         versionCode = 1

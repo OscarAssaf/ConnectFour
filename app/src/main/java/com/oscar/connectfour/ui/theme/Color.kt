@@ -1,4 +1,4 @@
-package com.oscar.tictactoe.ui.theme
+package com.oscar.connectfour.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

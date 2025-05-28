@@ -1,4 +1,4 @@
-package com.oscar.tictactoe
+package com.oscar.connectfour
 
 import org.junit.Test
 
