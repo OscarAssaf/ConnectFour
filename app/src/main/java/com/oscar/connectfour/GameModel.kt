@@ -1,10 +1,12 @@
 package com.oscar.connectfour
 
+
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
+
 
 data class Player(
     var name: String = ""
@@ -27,6 +29,7 @@ class GameModel: ViewModel() {
     val gameMap = MutableStateFlow<Map<String, Game>>(emptyMap())
 
     fun initGame() {
+
         // listen players
         db.collection("players")
             .addSnapshotListener { value, error ->
@@ -55,4 +58,120 @@ class GameModel: ViewModel() {
                 }
             }
     }
+
+    private fun checkWinner(board: List<Int>): Int {
+        // horizontal
+        for (row in 0 until rows) {
+            for (col in 0 until cols - 3) {
+                val index = row * cols + col
+                if (board[index] != 0 &&
+                    board[index] == board[index + 1] &&
+                    board[index] == board[index + 2] &&
+                    board[index] == board[index + 3]) {
+                    return board[index]
+                }
+            }
+        }
+
+        // vertical
+        for (row in 0 until rows - 3) {
+            for (col in 0 until cols) {
+                val index = row * cols + col
+                if (board[index] != 0 &&
+                    board[index] == board[index + cols] &&
+                    board[index] == board[index + 2 * cols] &&
+                    board[index] == board[index + 3 * cols]) {
+                    return board[index]
+                }
+            }
+        }
+
+        // diagonal
+        for (row in 0 until rows - 3) {
+            for (col in 0 until cols - 3) {
+                val index = row * cols + col
+                if (board[index] != 0 &&
+                    board[index] == board[index + cols + 1] &&
+                    board[index] == board[index + 2 * (cols + 1)] &&
+                    board[index] == board[index + 3 * (cols + 1)]) {
+                    return board[index]
+                }
+            }
+        }
+
+        // diagonal 2
+        for (row in 0 until rows - 3) {
+            for (col in 3 until cols) {
+                val index = row * cols + col
+                if (board[index] != 0 &&
+                    board[index] == board[index + cols - 1] &&
+                    board[index] == board[index + 2 * (cols - 1)] &&
+                    board[index] == board[index + 3 * (cols - 1)]) {
+                    return board[index]
+                }
+            }
+        }
+
+        // draw
+        if (!board.contains(0)) {
+            return 3
+        }
+
+
+        return 0
+    }
+    fun checkGameState(gameId: String?, column: Int) {
+        if (gameId != null) {
+            val game: Game? = gameMap.value[gameId]
+            if (game != null) {
+                val myTurn = game.gameState == "player1_turn" && game.player1Id == localPlayerId.value ||
+                        game.gameState == "player2_turn" && game.player2Id == localPlayerId.value
+                if (!myTurn) return
+
+                val list: MutableList<Int> = game.gameBoard.toMutableList()
+
+                // lowest empty row in column
+                var row = rows - 1
+                while (row >= 0 && list[row * cols + column] != 0) {
+                    row--
+                }
+
+                if (row >= 0) { // space in the column
+                    if (game.gameState == "player1_turn") {
+                        list[row * cols + column] = 1
+                    } else if (game.gameState == "player2_turn") {
+                        list[row * cols + column] = 2
+                    }
+
+                    var turn: String
+                    turn = if (game.gameState == "player1_turn") {
+                        "player2_turn"
+                    } else {
+                        "player1_turn"
+                    }
+
+                    val winner = checkWinner(list.toList())
+                    when (winner) {
+                        1 -> {
+                            turn = "player1_won"
+                        }
+                        2 -> {
+                            turn = "player2_won"
+                        }
+                        3 -> {
+                            turn = "draw"
+                        }
+                    }
+
+                    db.collection("games").document(gameId)
+                        .update(
+                            "gameBoard", list,
+                            "gameState", turn
+                        )
+                }
+            }
+        }
+    }
+
+
 }

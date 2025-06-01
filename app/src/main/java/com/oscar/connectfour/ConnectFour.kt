@@ -18,9 +18,24 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.asStateFlow
 
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.ArrowDropDown
+
+
+// Foundation
+import androidx.compose.foundation.background
+
+// Material Design
+import androidx.compose.material.icons.Icons
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-
+import androidx.compose.ui.graphics.Color
 @Composable
 fun ConnectFourApp() {
     val navController = rememberNavController()
@@ -179,26 +194,109 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
 @Composable
 fun GameScreen(navController: NavController, model: GameModel, gameId: String?) {
     val players by model.playerMap.asStateFlow().collectAsStateWithLifecycle()
+    val games   by model.gameMap.asStateFlow().collectAsStateWithLifecycle()
     val playerName = players[model.localPlayerId.value]?.name ?: "Unknown"
+
+    if (gameId == null || !games.containsKey(gameId)) {
+        Log.e("ConnectFourError", "Game not found: $gameId")
+        navController.navigate("lobby")
+        return
+    }
+
+    val game = games[gameId]!!
+    if (game.gameState.endsWith("_won") || game.gameState == "draw") {
+        AlertDialog(
+            onDismissRequest = {},
+            title   = { Text("Game Over") },
+            text    = {
+                Text(
+                    if (game.gameState == "draw") "Draw!"
+                    else "${game.gameState.removeSuffix("_won")} wins!"
+                )
+            },
+            confirmButton = {
+                Button(onClick = { navController.navigate("lobby") }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Connect Four - $playerName") }) }
     ) { innerPadding ->
         Column(
-            modifier = Modifier
+            modifier            = Modifier
                 .padding(innerPadding)
-                .fillMaxSize(),
+                .fillMaxWidth(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Connect Four Game",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            // Drop Row
+            Row {
+                for (col in 0 until cols) {
+                    val myTurn = (game.gameState == "player1_turn" &&
+                            game.player1Id == model.localPlayerId.value) ||
+                            (game.gameState == "player2_turn" &&
+                                    game.player2Id == model.localPlayerId.value)
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clickable(enabled = myTurn) {
+                                model.checkGameState(gameId, col)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (myTurn) {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Drop here")
+                        }
+                    }
+                }
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Column numbers
+            Row {
+                for (col in 0 until cols) {
+                    Box(
+                        modifier = Modifier.size(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = col.toString(),
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
 
-
+            // Board
+            for (row in 0 until rows) {
+                Row {
+                    for (col in 0 until cols) {
+                        val idx = row * cols + col
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .border(1.dp, Color.Black)
+                                .background(Color.Blue.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when (game.gameBoard[idx]) {
+                                1 -> Box(
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Red)
+                                )
+                                2 -> Box(
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Yellow)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
