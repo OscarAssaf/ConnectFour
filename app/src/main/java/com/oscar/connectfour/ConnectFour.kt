@@ -90,7 +90,7 @@ fun NewPlayerScreen(navController: NavController, model: GameModel) {
             Button(
                 onClick = {
                     if (playerName.isNotBlank()) {
-                        // Creates new player
+                        // create new player
                         val newPlayer = Player(name = playerName)
                         model.db.collection("players")
                             .add(newPlayer)
@@ -159,7 +159,7 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                                         Button(onClick = {
                                             model.db.collection("games")
                                                 .document(gameId)
-                                                .update("gameState","player1_turn")
+                                                .update("gameState","player2_turn")
                                                 .addOnSuccessListener {
                                                     navController.navigate("game/$gameId")
                                                 }
@@ -204,6 +204,14 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
     }
 
     val game = games[gameId]!!
+
+    // Current turn name
+    val currentTurnPlayerName = when (game.gameState) {
+        "player1_turn" -> players[game.player1Id]?.name ?: "Unknown"
+        "player2_turn" -> players[game.player2Id]?.name ?: "Unknown"
+        else -> ""
+    }
+
     if (game.gameState.endsWith("_won") || game.gameState == "draw") {
         AlertDialog(
             onDismissRequest = {},
@@ -232,6 +240,15 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // current turn
+            if (currentTurnPlayerName.isNotEmpty()) {
+                Text(
+                    text = "$currentTurnPlayerName's turn to play",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
             // Drop Row
             Row {
                 for (col in 0 until cols) {
