@@ -147,39 +147,81 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                         supportingContent= { Text("Status: …") },
                         trailingContent  = {
                             var hasGame = false
+                            var gameIdPlayer: String? = null
+
+
                             games.forEach { (gameId, game) ->
                                 when {
                                     game.player1Id == model.localPlayerId.value &&
+                                            game.player2Id == id &&
                                             game.gameState == "invite" -> {
                                         Text("Waiting for accept…")
                                         hasGame = true
+                                        gameIdPlayer = gameId
                                     }
                                     game.player2Id == model.localPlayerId.value &&
+                                            game.player1Id == id &&
                                             game.gameState == "invite" -> {
-                                        Button(onClick = {
-                                            model.db.collection("games")
-                                                .document(gameId)
-                                                .update("gameState","player2_turn")
-                                                .addOnSuccessListener {
-                                                    navController.navigate("game/$gameId")
-                                                }
-                                                .addOnFailureListener {
-                                                    Log.e("ConnectFourError",
-                                                        "Error updating game: $gameId")
-                                                }
-                                        }) { Text("Accept invite") }
                                         hasGame = true
+                                        gameIdPlayer = gameId
                                     }
                                 }
                             }
-                            if (!hasGame) {
-                                Button(onClick = {
-                                    model.db.collection("games")
-                                        .add(Game(gameState = "invite",
-                                            player1Id = model.localPlayerId.value!!,
-                                            player2Id = id))
-                                }) {
-                                    Text("Challenge")
+
+                            when {
+                                hasGame && gameIdPlayer != null -> {
+                                    val gameId = gameIdPlayer!!
+                                    val game = games[gameId]!!
+
+                                    if (game.player2Id == model.localPlayerId.value) {
+                                        // accept/decline
+                                        Row {
+                                            Button(
+                                                onClick = {
+                                                    model.db.collection("games")
+                                                        .document(gameId)
+                                                        .update("gameState","player2_turn")
+                                                        .addOnSuccessListener {
+                                                            navController.navigate("game/$gameId")
+                                                        }
+                                                        .addOnFailureListener {
+                                                            Log.e("ConnectFourError",
+                                                                "Error accepting game: $gameId")
+                                                        }
+                                                },
+                                                modifier = Modifier.padding(end = 4.dp)
+                                            ) {
+                                                Text("Accept")
+                                            }
+
+                                            Button(
+                                                onClick = {
+                                                    model.db.collection("games")
+                                                        .document(gameId)
+                                                        .delete()
+                                                        .addOnFailureListener {
+                                                            Log.e("ConnectFourError",
+                                                                "Error declining game: $gameId")
+                                                        }
+                                                }
+                                            ) {
+                                                Text("Decline")
+                                            }
+                                        }
+                                    } else {
+
+                                        Text("Waiting for accept…")
+                                    }
+                                }
+                                !hasGame -> {
+                                    Button(onClick = {
+                                        model.db.collection("games")
+                                            .add(Game(gameState = "invite",
+                                                player1Id = model.localPlayerId.value!!,
+                                                player2Id = id))
+                                    }) {
+                                        Text("Challenge")
+                                    }
                                 }
                             }
                         }
@@ -213,13 +255,19 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
     }
 
     if (game.gameState.endsWith("_won") || game.gameState == "draw") {
+        val winnerName = when (game.gameState) {
+            "player1_won" -> players[game.player1Id]?.name ?: "Unknown"
+            "player2_won" -> players[game.player2Id]?.name ?: "Unknown"
+            else -> ""
+        }
+
         AlertDialog(
             onDismissRequest = {},
             title   = { Text("Game Over") },
             text    = {
                 Text(
                     if (game.gameState == "draw") "Draw!"
-                    else "${game.gameState.removeSuffix("_won")} wins!"
+                    else "$winnerName wins!"
                 )
             },
             confirmButton = {
