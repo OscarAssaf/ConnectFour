@@ -68,9 +68,7 @@ fun NewPlayerScreen(navController: NavController, model: GameModel) {
         var playerName by remember { mutableStateOf("") }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -123,6 +121,7 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
     val players by model.playerMap.asStateFlow().collectAsStateWithLifecycle()
     val games   by model.gameMap.asStateFlow().collectAsStateWithLifecycle()
 
+
     LaunchedEffect(games) {
         games.forEach { (gameId, game) ->
             if ((game.player1Id == model.localPlayerId.value ||
@@ -136,15 +135,30 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
 
     val playerName = players[model.localPlayerId.value]?.name ?: "Unknown"
 
+    fun inGame(playerId: String): Boolean {
+        return games.values.any { game ->
+            (game.player1Id == playerId || game.player2Id == playerId) &&
+                    (game.gameState == "player1_turn" || game.gameState == "player2_turn")
+        }
+    }
+
+    // Status
+    fun playerStatus(playerId: String): String {
+        return if (inGame(playerId)) "In Game" else "Available"
+    }
+
     Scaffold(
         topBar = { TopAppBar(title = { Text("Connect Four - $playerName") }) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.padding(innerPadding)) {
             items(players.entries.toList()) { (id, player) ->
                 if (id != model.localPlayerId.value) {
+                    val status = playerStatus(id)
+                    val isInGame = inGame(id)
+
                     ListItem(
                         headlineContent  = { Text("Player: ${player.name}") },
-                        supportingContent= { Text("Status: …") },
+                        supportingContent= { Text("Status: $status") },
                         trailingContent  = {
                             var hasGame = false
                             var gameIdPlayer: String? = null
@@ -209,8 +223,15 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                                             }
                                         }
                                     } else {
-
                                         Text("Waiting for accept…")
+                                    }
+                                }
+                                isInGame -> {
+                                    Button(
+                                        onClick = {},
+                                        enabled = false
+                                    ) {
+                                        Text("Challenge")
                                     }
                                 }
                                 !hasGame -> {
@@ -282,9 +303,7 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
         topBar = { TopAppBar(title = { Text("Connect Four - $playerName") }) }
     ) { innerPadding ->
         Column(
-            modifier            = Modifier
-                .padding(innerPadding)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(innerPadding).fillMaxWidth(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -305,9 +324,7 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
                             (game.gameState == "player2_turn" &&
                                     game.player2Id == model.localPlayerId.value)
                     Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clickable(enabled = myTurn) {
+                        modifier = Modifier.size(48.dp).clickable(enabled = myTurn) {
                                 model.checkGameState(gameId, col)
                             },
                         contentAlignment = Alignment.Center
