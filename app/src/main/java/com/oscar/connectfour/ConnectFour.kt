@@ -38,32 +38,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 @Composable
 fun ConnectFourApp() {
-    val navController = rememberNavController()
+    val navController = rememberNavController() //navigation screens
     val model = GameModel().apply { initGame() }
-
+        //routes
     NavHost(navController = navController, startDestination = "player") {
-        composable("player") { NewPlayerScreen(navController, model) }
-        composable("lobby")  { LobbyScreen(navController, model) }
-        composable("game/{gameId}") { backStackEntry ->
+        composable("player") { NewPlayerScreen(navController, model) } //new player
+        composable("lobby")  { LobbyScreen(navController, model) } //lobby
+        composable("game/{gameId}") { backStackEntry ->  //gamescreen but dynamic
             val gameId = backStackEntry.arguments?.getString("gameId")
             GameScreen(navController, model, gameId)
         }
     }
 }
-
+//For new players
 @Composable
 fun NewPlayerScreen(navController: NavController, model: GameModel) {
-    val sharedPreferences = LocalContext.current
+    val sharedPreferences = LocalContext.current //store user locally
         .getSharedPreferences("ConnectFourPrefs", Context.MODE_PRIVATE)
 
-    // player logic
+    // IS player already registered?
     LaunchedEffect(Unit) {
-        model.localPlayerId.value = sharedPreferences.getString("playerId", null)
-        if (model.localPlayerId.value != null) {
-            navController.navigate("lobby")
+        model.localPlayerId.value = sharedPreferences.getString("playerId", null) //gets the reg player
+        if (model.localPlayerId.value != null) { //if exists
+            navController.navigate("lobby") //sends to lobby
         }
     }
-
+        //player doesnt exist = register player
     if (model.localPlayerId.value == null) {
         var playerName by remember { mutableStateOf("") }
 
@@ -87,17 +87,17 @@ fun NewPlayerScreen(navController: NavController, model: GameModel) {
 
             Button(
                 onClick = {
-                    if (playerName.isNotBlank()) {
+                    if (playerName.isNotBlank()) { //nam not empty
                         // create new player
                         val newPlayer = Player(name = playerName)
-                        model.db.collection("players")
+                        model.db.collection("players") //saves user to firestore
                             .add(newPlayer)
                             .addOnSuccessListener { docRef ->
                                 val newPlayerId = docRef.id
-                                sharedPreferences.edit()
+                                sharedPreferences.edit() //saves playerID for future
                                     .putString("playerId", newPlayerId)
                                     .apply()
-                                model.localPlayerId.value = newPlayerId
+                                model.localPlayerId.value = newPlayerId //puts ID in the model
                                 navController.navigate("lobby")
                             }
                             .addOnFailureListener { error ->
@@ -116,26 +116,26 @@ fun NewPlayerScreen(navController: NavController, model: GameModel) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
+@Composable //lobby, challenge etv
 fun LobbyScreen(navController: NavController, model: GameModel) {
-    val players by model.playerMap.asStateFlow().collectAsStateWithLifecycle()
+    val players by model.playerMap.asStateFlow().collectAsStateWithLifecycle() //players + game from MAP
     val games   by model.gameMap.asStateFlow().collectAsStateWithLifecycle()
 
-
+            //if in already a game, send user to it
     LaunchedEffect(games) {
         games.forEach { (gameId, game) ->
-            if ((game.player1Id == model.localPlayerId.value ||
+            if ((game.player1Id == model.localPlayerId.value || //user in game that is active?
                         game.player2Id == model.localPlayerId.value) &&
                 (game.gameState == "player1_turn" ||
                         game.gameState == "player2_turn")) {
-                navController.navigate("game/$gameId")
+                navController.navigate("game/$gameId") //send that user to the game
             }
         }
     }
 
     val playerName = players[model.localPlayerId.value]?.name ?: "Unknown"
 
-    fun inGame(playerId: String): Boolean {
+    fun inGame(playerId: String): Boolean { //helper func if in game
         return games.values.any { game ->
             (game.player1Id == playerId || game.player2Id == playerId) &&
                     (game.gameState == "player1_turn" || game.gameState == "player2_turn")
@@ -146,12 +146,12 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
     fun playerStatus(playerId: String): String {
         return if (inGame(playerId)) "In Game" else "Available"
     }
-
+    //lobby screen layout
     Scaffold(
         topBar = { TopAppBar(title = { Text("Connect Four - $playerName") }) }
     ) { innerPadding ->
-        LazyColumn(modifier = Modifier.padding(innerPadding)) {
-            items(players.entries.toList()) { (id, player) ->
+        LazyColumn(modifier = Modifier.padding(innerPadding)) { //list all players except urself
+            items(players.entries.toList()) { (id, player) -> //map to list
                 if (id != model.localPlayerId.value) {
                     val status = playerStatus(id)
                     val isInGame = inGame(id)
@@ -164,7 +164,7 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                             var gameIdPlayer: String? = null
 
 
-                            games.forEach { (gameId, game) ->
+                            games.forEach { (gameId, game) -> //Checks if u got challenged
                                 when {
                                     game.player1Id == model.localPlayerId.value &&
                                             game.player2Id == id &&
@@ -181,8 +181,8 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                                     }
                                 }
                             }
-
-                            when {
+                                //buttons based on gamerequest
+                            when { //we got an invite
                                 hasGame && gameIdPlayer != null -> {
                                     val gameId = gameIdPlayer!!
                                     val game = games[gameId]!!
@@ -207,9 +207,9 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                                             ) {
                                                 Text("Accept")
                                             }
-
+                                                //Decline
                                             Button(
-                                                onClick = {
+                                                onClick = { //Delete the invite
                                                     model.db.collection("games")
                                                         .document(gameId)
                                                         .delete()
@@ -226,7 +226,7 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                                         Text("Waiting for accept…")
                                     }
                                 }
-                                isInGame -> {
+                                isInGame -> { //player busy
                                     Button(
                                         onClick = {},
                                         enabled = false
@@ -234,9 +234,9 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                                         Text("Challenge")
                                     }
                                 }
-                                !hasGame -> {
+                                !hasGame -> { //available
                                     Button(onClick = {
-                                        model.db.collection("games")
+                                        model.db.collection("games") //
                                             .add(Game(gameState = "invite",
                                                 player1Id = model.localPlayerId.value!!,
                                                 player2Id = id))
@@ -253,13 +253,17 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
     }
 }
 
+
+
+
+//Gamescreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GameScreen(navController: NavController, model: GameModel, gameId: String?) {
+fun GameScreen(navController: NavController, model: GameModel, gameId: String?) { //state + players
     val players by model.playerMap.asStateFlow().collectAsStateWithLifecycle()
     val games   by model.gameMap.asStateFlow().collectAsStateWithLifecycle()
     val playerName = players[model.localPlayerId.value]?.name ?: "Unknown"
-
+//returns to lobby if game not exist
     if (gameId == null || !games.containsKey(gameId)) {
         Log.e("ConnectFourError", "Game not found: $gameId")
         navController.navigate("lobby")
@@ -274,14 +278,14 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
         "player2_turn" -> players[game.player2Id]?.name ?: "Unknown"
         else -> ""
     }
-
+    //game over
     if (game.gameState.endsWith("_won") || game.gameState == "draw") {
         val winnerName = when (game.gameState) {
             "player1_won" -> players[game.player1Id]?.name ?: "Unknown"
             "player2_won" -> players[game.player2Id]?.name ?: "Unknown"
             else -> ""
         }
-
+       //shows who won
         AlertDialog(
             onDismissRequest = {},
             title   = { Text("Game Over") },
@@ -299,6 +303,7 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
         )
     }
 
+    //layout of the gamescreen
     Scaffold(
         topBar = { TopAppBar(title = { Text("Connect Four - $playerName") }) }
     ) { innerPadding ->
@@ -307,7 +312,7 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // current turn
+            // current turn indicator
             if (currentTurnPlayerName.isNotEmpty()) {
                 Text(
                     text = "$currentTurnPlayerName's turn to play",
@@ -319,6 +324,7 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
             // Drop Row
             Row {
                 for (col in 0 until cols) {
+
                     val myTurn = (game.gameState == "player1_turn" &&
                             game.player1Id == model.localPlayerId.value) ||
                             (game.gameState == "player2_turn" &&
@@ -329,7 +335,7 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (myTurn) {
+                        if (myTurn) { //if its ur turn, show the arrows to you only
                             Icon(Icons.Default.ArrowDropDown, contentDescription = "Drop here")
                         }
                     }
@@ -353,23 +359,23 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
             for (row in 0 until rows) {
                 Row {
                     for (col in 0 until cols) {
-                        val idx = row * cols + col
-                        Box(
+                        val idx = row * cols + col //array index
+                        Box( //cell
                             modifier = Modifier
                                 .size(48.dp)
                                 .border(1.dp, Color.Black)
                                 .background(Color.Blue.copy(alpha = 0.3f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            when (game.gameBoard[idx]) {
-                                1 -> Box(
+                            when (game.gameBoard[idx]) { //shows the boar based on its state
+                                1 -> Box( //p1 piece
                                     Modifier
                                         .size(40.dp)
                                         .clip(CircleShape)
                                         .background(Color.Red)
                                 )
                                 2 -> Box(
-                                    Modifier
+                                    Modifier //p2 piece
                                         .size(40.dp)
                                         .clip(CircleShape)
                                         .background(Color.Yellow)
