@@ -23,7 +23,7 @@ const val rows = 6
 const val cols = 7
 
 class GameModel: ViewModel() { //data stays after changing screens
-    val db = Firebase.firestore //firestore
+    val db by lazy { Firebase.firestore } //firestore
     var localPlayerId = mutableStateOf<String?>(null) //player ID
     val playerMap = MutableStateFlow<Map<String, Player>>(emptyMap()) //player list
     val gameMap = MutableStateFlow<Map<String, Game>>(emptyMap()) //all active games, Game IDs
@@ -60,7 +60,7 @@ class GameModel: ViewModel() { //data stays after changing screens
     }
 
 //rules: 0 = continue, 1 = player1 , 2 = player 2, 3 = draw
-    private fun checkWinner(board: List<Int>): Int {
+    internal fun checkWinner(board: List<Int>): Int {
         // horizontal by looping row
         for (row in 0 until rows) {
             for (col in 0 until cols - 3) {
