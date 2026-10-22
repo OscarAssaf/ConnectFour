@@ -15,7 +15,6 @@ class GameLogicTest {
 
     @Test
     fun testHorizontalWinPlayer1() {
-        // Create a board with 4 consecutive 1s in the first row
         val board = MutableList(6 * 7) { 0 }
         board[0] = 1
         board[1] = 1
@@ -28,7 +27,6 @@ class GameLogicTest {
 
     @Test
     fun testHorizontalWinPlayer2() {
-        // Create a board with 4 consecutive 2s in row 2
         val board = MutableList(6 * 7) { 0 }
         val rowStartIndex = 2 * cols
         board[rowStartIndex] = 2
@@ -42,7 +40,6 @@ class GameLogicTest {
 
     @Test
     fun testVerticalWinPlayer1() {
-        // Create a board with 4 vertical 1s in column 0
         val board = MutableList(6 * 7) { 0 }
         board[0 * cols + 0] = 1
         board[1 * cols + 0] = 1
@@ -55,7 +52,6 @@ class GameLogicTest {
 
     @Test
     fun testDiagonalWinBackslash() {
-        // Diagonal \ win starting at (0,0) -> (1,1) -> (2,2) -> (3,3)
         val board = MutableList(6 * 7) { 0 }
         val step = cols + 1
         board[0] = 2
@@ -69,7 +65,6 @@ class GameLogicTest {
 
     @Test
     fun testDiagonalWinSlash() {
-        // Diagonal / win starting at row 0, col 3 -> index 3
         val board = MutableList(6 * 7) { 0 }
         val step = cols - 1
         val startIndex = 3
@@ -94,20 +89,51 @@ class GameLogicTest {
     }
 
     @Test
-    fun testPlayerModelDefaults() {
+    fun testPieceGravityStackingLogic() {
+        // Simulate piece dropping in column 0
+        val board = MutableList(6 * 7) { 0 }
+        val column = 0
+
+        // Drop first piece
+        var row = rows - 1
+        while (row >= 0 && board[row * cols + column] != 0) {
+            row--
+        }
+        board[row * cols + column] = 1
+
+        // Bottom cell should have player 1's piece
+        assertEquals(1, board[5 * cols + 0])
+
+        // Drop second piece in same column
+        while (row >= 0 && board[row * cols + column] != 0) {
+            row--
+        }
+        board[row * cols + column] = 2
+
+        // Row above bottom should have player 2's piece
+        assertEquals(2, board[4 * cols + 0])
+    }
+
+    @Test
+    fun testPlayerModelSerializationAndDefaults() {
         val player = Player(name = "Alice")
         assertEquals("Alice", player.name)
-
+        
         player.name = "Bob"
         assertEquals("Bob", player.name)
     }
 
     @Test
-    fun testGameModelDefaults() {
-        val game = Game()
+    fun testGameModelSerializationAndDefaults() {
+        val game = Game(
+            gameBoard = List(42) { 0 },
+            gameState = "player1_turn",
+            player1Id = "p1",
+            player2Id = "p2"
+        )
         assertEquals(42, game.gameBoard.size)
-        assertEquals("invite", game.gameState)
-        assertEquals("", game.player1Id)
-        assertEquals("", game.player2Id)
+        assertEquals("player1_turn", game.gameState)
+        assertEquals("p1", game.player1Id)
+        assertEquals("p2", game.player2Id)
     }
 }

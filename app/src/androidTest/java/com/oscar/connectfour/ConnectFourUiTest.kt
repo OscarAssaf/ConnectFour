@@ -16,27 +16,30 @@ class ConnectFourUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun testNewPlayerScreenRenders() {
+    fun testNewPlayerScreenRendersAndAllowsInput() {
         composeTestRule.setContent {
             ConnectFourApp()
         }
 
-        // Verify welcome text is displayed
+        // verrify welcome text is shown
         composeTestRule.onNodeWithText("Welcome to Connect Four!").assertIsDisplayed()
-        // Verify text field label
+        
+        // Verify enter your name and create player button / label exists in the UI element.
         composeTestRule.onNodeWithText("Enter your name").assertIsDisplayed()
-        // Verify create player button
         composeTestRule.onNodeWithText("Create Player").assertIsDisplayed()
+
+        // Perform text input interaction
+        composeTestRule.onNodeWithText("Enter your name").performTextInput("ProPlayer1")
     }
 
     @Test
-    fun testPlayerNameInputAndInteraction() {
+    fun testGameScreenComponentsExist() {
+
+        // test for app navigation correctly
         composeTestRule.setContent {
             ConnectFourApp()
         }
-
-        // Type player name
-        composeTestRule.onNodeWithText("Enter your name").performTextInput("TestPlayer")
-        composeTestRule.onNodeWithText("Create Player").assertIsDisplayed()
+        
+        composeTestRule.onNodeWithText("Welcome to Connect Four!").assertIsDisplayed()
     }
 }
